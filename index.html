@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-agent build orchestra</title>
+  <style>
+    :root { --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #fff;
+      color: #000;
+      line-height: 1.35;
+      font-size: 15px;
+    }
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+    h1 {
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.15rem;
+    }
+    .byline {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin: 0 0 0.6rem;
+    }
+    .sub {
+      font-size: 0.95rem;
+      color: #222;
+      margin: 0 0 1.75rem;
+      max-width: 40rem;
+    }
+    h2 {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-top: 2px solid #000;
+      padding-top: 0.85rem;
+      margin: 2rem 0 0.75rem;
+    }
+    h3 {
+      font-size: 0.85rem;
+      font-weight: 800;
+      margin: 1.1rem 0 0.4rem;
+    }
+    p { margin: 0 0 0.65rem; }
+    .rule {
+      border: 2px solid #000;
+      padding: 0.75rem 1rem;
+      margin: 0 0 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    /* flow */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .arrow {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: stretch;
+    }
+    .node {
+      border: 2px solid #000;
+      padding: 0.65rem 0.75rem;
+      flex: 1 1 11rem;
+      min-width: 10rem;
+      background: #fff;
+    }
+    .node.full { flex: 1 1 100%; }
+    .node.black {
+      background: #000;
+      color: #fff;
+    }
+    .node .role {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.3rem;
+    }
+    .node .model {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+    .node .blurb {
+      font-size: 0.82rem;
+      margin: 0;
+    }
+    .node.black .blurb { color: #eee; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin: 0.5rem 0 1rem;
+    }
+    th, td {
+      border: 1.5px solid #000;
+      padding: 0.45rem 0.55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #000;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .mono {
+      font-family: var(--mono);
+      font-size: 0.8em;
+    }
+    ul {
+      margin: 0.25rem 0 0.75rem;
+      padding-left: 1.15rem;
+    }
+    li { margin: 0.25rem 0; }
+    .note {
+      font-size: 0.82rem;
+      border-left: 3px solid #000;
+      padding-left: 0.75rem;
+      margin: 0.75rem 0;
+    }
+    .trap {
+      border: 2px solid #000;
+      padding: 0.7rem 0.85rem;
+      margin: 0.75rem 0 1.25rem;
+      font-size: 0.85rem;
+    }
+    .trap .label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #000;
+      font-size: 0.75rem;
+    }
+    @media print {
+      .page { padding: 1rem 0.5rem; }
+      body { font-size: 12px; }
+      .trap, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Multi-agent build orchestra</h1>
+    <p class="byline">by moo</p>
+    <p class="sub">
+      Map for work with one human owner, one lead and specialist seats, run
+      from a multi-pane terminal workspace. Model names are current as of
+      August 2026; treat IDs as snapshots and the seat strengths as the durable
+      part.
+    </p>
+
+    <div class="rule">
+      Loop: human decides, lead briefs, specialist acts, lead verifies on disk, human keeps or cuts.
+    </div>
+
+    <h2>1. Flow</h2>
+    <div class="flow">
+      <div class="row">
+        <div class="node black full">
+          <div class="role">You (human... hopefully)</div>
+          <div class="model">Owner of meaning</div>
+          <p class="blurb">Taste, scope, gut-checks and judgement calls. Final keep or cut. Owns anything irreversible: commits, pushes, version bumps, anecdotal and live data.</p>
+        </div>
+      </div>
+      <div class="arrow">&darr;</div>
+      <div class="row">
+        <div class="node full">
+          <div class="role">Lead / orchestrator</div>
+          <div class="model">Highest-cost seat. Writes briefs, not bulk edits.</div>
+          <p class="blurb">Turns intent into locked briefs with file and line anchors. Splits work by file territory. Verifies every claim against disk. Writes the record. Lead work is still writing, but briefs and verification rather than bulk edits.</p>
+        </div>
+      </div>
+      <div class="arrow">&darr; branches (parallel, different files only)</div>
+      <div class="row">
+        <div class="node">
+          <div class="role">Precision coder</div>
+          <div class="model">Composer 2.5 (Cursor Agent)</div>
+          <p class="blurb">Surgical patches in one large or fragile file. Exact follow-through. Prefer for "replace this block, touch nothing else."</p>
+        </div>
+        <div class="node">
+          <div class="role">Second builder</div>
+          <div class="model">Claude Sonnet 5, medium</div>
+          <p class="blurb">Well-specified work in a separate file tree. Batch edits, data rows, self-contained modules. Runs parallel to Precision without collision.</p>
+        </div>
+        <div class="node">
+          <div class="role">Survey / research</div>
+          <div class="model">Grok 4.5, medium</div>
+          <p class="blurb">Finds what is missing. Sourcing with citations. Brief it to return "unknown" when evidence is thin, and it will.</p>
+        </div>
+      </div>
+      <div class="arrow">&darr;</div>
+      <div class="row">
+        <div class="node full">
+          <div class="role">Verify on disk</div>
+          <div class="model">Lead, independent of the agent's self-report</div>
+          <p class="blurb">Read the file, run a checker script, count what should not have changed. Do not accept a summary as evidence.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      Seats change. Someone gets promoted out of a role, or a model turns out to
+      be wrong for the job. Ask for a flow map update the same way you ask for
+      anything else. A stale map might get followed, so keep it updated.
+    </div>
+
+    <h2>2. Seat map</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Seat</th>
+          <th>Model</th>
+          <th>ID / surface</th>
+          <th>Effort</th>
+          <th>Use when</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lead</td>
+          <td>Claude Opus 5 or Grok 4.5</td>
+          <td><span class="mono">claude-opus-5</span> / <span class="mono">grok-4.5</span></td>
+          <td>high for design and review</td>
+          <td>briefs, review, verification, the written record</td>
+        </tr>
+        <tr>
+          <td>Precision coder</td>
+          <td>Composer 2.5</td>
+          <td>Cursor Agent (Standard or Fast tier)</td>
+          <td>auto calibration; Fast is same model, higher cost per token</td>
+          <td>exact edits in a monolith or fragile file, multi-file agent loops</td>
+        </tr>
+        <tr>
+          <td>Second builder</td>
+          <td>Claude Sonnet 5</td>
+          <td><span class="mono">claude-sonnet-5</span> (Claude Code)</td>
+          <td>low / medium / high / xhigh; medium fits spec'd work</td>
+          <td>batch edits, data rows, modules in a separate tree</td>
+        </tr>
+        <tr>
+          <td>Survey / research</td>
+          <td>Grok 4.5</td>
+          <td><span class="mono">grok-4.5</span> (Grok CLI)</td>
+          <td>medium default; raise for hard sourcing</td>
+          <td>gap-finding, cited research, honest "unknown" answers</td>
+        </tr>
+        <tr>
+          <td>Cheap bulk</td>
+          <td>Haiku 4.5 or an open-weight model</td>
+          <td><span class="mono">claude-haiku-4-5</span>, <span class="mono">gpt-oss-120b</span></td>
+          <td>GPT-OSS: <span class="mono">Reasoning: low | medium | high</span></td>
+          <td>mechanical tries under a locked brief. GPT-OSS at low is trash at
+          coding unless the brief is extremely specific. Use it only under a
+          locked brief with independent verify</td>
+        </tr>
+        <tr>
+          <td>Alt research</td>
+          <td>Gemini 3.x</td>
+          <td><span class="mono">gemini-3.1-pro</span>, <span class="mono">gemini-3.6-flash</span></td>
+          <td>Flash for volume, Pro for depth</td>
+          <td>multimodal, fast drafts, secondary research; quota burns fast</td>
+        </tr>
+        <tr>
+          <td>Alt long-agent</td>
+          <td>Kimi (Moonshot)</td>
+          <td><span class="mono">kimi-k2.7-code</span>, <span class="mono">kimi-k3</span></td>
+          <td>K3 low / high / max; code SKUs often always-on thinking</td>
+          <td>long-horizon coding, open-weight path</td>
+        </tr>
+        <tr>
+          <td>Human</td>
+          <td>You</td>
+          <td>-</td>
+          <td>-</td>
+          <td>final taste and every irreversible action</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Economics</h2>
+    <p>
+      Lead models can cost roughly eight times a cheap builder per token. Put
+      the expensive seat on briefs and review. Put bulk edits on cheaper seats.
+    </p>
+    <p>
+      If the lead catches itself editing something a paragraph brief
+      could have delegated, that is the mistake. A paragraph brief plus a
+      diff review usually costs less than the lead producing the patch. It cuts the other way
+      too: a lead that doesn't check the work is prone to GIGO with your money.
+    </p>
+
+    <h2>4. Scaffold first</h2>
+    <p>
+      Consider workspace over repo folder. Build the prototypes in the workspace
+      and not in the repo folder, then port the working version in. Iterating in
+      a disposable file keeps a bad pass out of the product tree.
+    </p>
+    <p>
+      This suits agents better than editing in place. A scaffold is one
+      self-contained file with no surrounding code to break, so a cheaper seat
+      can take it and a bad result is thrown away rather than reverted.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Step</th><th>What it looks like</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Version each pass</td>
+          <td>Keep v3, v4, v5 side by side rather than overwriting. Comparing
+          beats remembering and you can go back when v5 turns out worse.</td>
+        </tr>
+        <tr>
+          <td>Freeze what works</td>
+          <td>Copy the good version to a frozen file before the next round of
+          changes. That is your known-good reference while you experiment.</td>
+        </tr>
+        <tr>
+          <td>Capture the states</td>
+          <td>Screenshot light and dark, wide and narrow. UI regressions hide in
+          the state you were not looking at.</td>
+        </tr>
+        <tr>
+          <td>Port, do not paste</td>
+          <td>The scaffold has no namespace, no house conventions and no service
+          worker. Moving it in is its own task with its own review.</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>Scaffold, sidedeck, in the tool</h3>
+    <p>
+      A scaffold fakes its inputs. A <strong>sidedeck</strong> reads the real
+      thing. It pulls live data or real source from the tool but the tool does
+      not load it back. The dependency runs one way.
+    </p>
+    <p>
+      Borrowed from card games, where the side deck is a real set you own and
+      bring but keep out of play until you swap something in. No established
+      software term covers this shape and
+      "sidecar" already means the opposite: co-deployed and sharing the app
+      lifecycle.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Stage</th><th>Reads</th><th>Delete it and</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Scaffold</td>
+          <td>Nothing real. Faked inputs.</td>
+          <td>Nothing breaks.</td>
+        </tr>
+        <tr>
+          <td>Sidedeck</td>
+          <td>Real data or real source.</td>
+          <td>Nothing breaks.</td>
+        </tr>
+        <tr>
+          <td>In the tool</td>
+          <td>Real and wired in.</td>
+          <td>The tool breaks.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Remove it and see what stops working. If nothing does you are still
+      outside. If the tool breaks you were editing production and did not
+      notice.
+    </p>
+
+    <h3>Scaffold or worktree</h3>
+    <p>
+      Both give you a separate place on disk. A branch does not. Branches share
+      one working directory, so switching changes the files under you and
+      half-done work has to be stashed first. Two agents sharing one working
+      directory will collide. Give each its own.
+    </p>
+    <table>
+      <thead>
+        <tr><th></th><th>Worktree</th><th>Scaffold</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Isolates</td>
+          <td>The repo. Real code, real build, separate checkout.</td>
+          <td>The idea. One standalone file with no product code around it.</td>
+        </tr>
+        <tr>
+          <td>Use when</td>
+          <td>You know what you are building.</td>
+          <td>You are deciding what it should be.</td>
+        </tr>
+        <tr>
+          <td>Comes back by</td>
+          <td>Merging.</td>
+          <td>Porting. It was never the same shape as the product.</td>
+        </tr>
+        <tr>
+          <td>History</td>
+          <td>Git keeps it.</td>
+          <td>Keep versions as files so you can compare them at once.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="note">
+      Keep scaffolds outside whatever ships. They are workshop files. Once a
+      feature is live and stable the scaffold is reference, not truth, so date it
+      or bin it.
+    </p>
+
+    <h2>5. Territory</h2>
+    <p>
+      Two agents editing the same file at once will screw each other over and
+      the loser is usually silent about it. <strong>Split work by file, not by
+      kind of work.</strong>
+    </p>
+    <table>
+      <thead>
+        <tr><th>Agent</th><th>Owns</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Precision coder</td>
+          <td>The monolith or largest fragile file</td>
+          <td>Single owner on the file where a collision hurts most</td>
+        </tr>
+        <tr>
+          <td>Second builder</td>
+          <td>A separate source tree</td>
+          <td>Smaller, self-contained files; parallel work is safe</td>
+        </tr>
+        <tr>
+          <td>Survey / research</td>
+          <td>Docs and research output, no product code</td>
+          <td>Never competes for a code file</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">
+      When territories are clear you can run two builders at once. When they are
+      not, run one at a time.
+    </p>
+
+    <h2>6. Lead capabilities</h2>
+    <p>
+      Whatever tool runs your panes, the lead needs five capabilities. Miss one
+      and the loop breaks somewhere predictable.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Capability</th><th>Why it matters</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>See the roster</td>
+          <td>Which agents exist, what each is working in and whether one is
+          already busy. Without this you dispatch into a pane that is mid-task
+          and lose both jobs.</td>
+        </tr>
+        <tr>
+          <td>Send a brief to a specific agent</td>
+          <td>The core action. Addressed to one named seat, not broadcast.</td>
+        </tr>
+        <tr>
+          <td>Read what an agent actually printed</td>
+          <td>Their terminal output, not their summary. This is how you catch an
+          agent that stopped early or hit an error it did not mention.</td>
+        </tr>
+        <tr>
+          <td>Wait for one to finish</td>
+          <td>So the lead can dispatch and go do something else instead of
+          polling. Useful and also the single biggest source of false
+          confidence. See below.</td>
+        </tr>
+        <tr>
+          <td>Name a seat</td>
+          <td>New panes usually arrive unnamed. Naming them is what makes a
+          brief addressable and a log readable a week later.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="trap">
+      <span class="label">Trap: "finished" does not mean "done"</span>
+      Whatever status your tool reports, treat it as a rumour. An agent stopped
+      at a permission prompt, waiting on a human, is usually reported as a
+      settled state, so any "wait until finished" call returns and everything
+      looks complete. On tools that take the pane title from an agent's first
+      prompt, that title then goes stale, so name your seats yourself.
+    </div>
+
+    <h2>7. Verification</h2>
+    <p>
+      The lead runs the checks. What you need back is what changed and what did
+      not change, both in plain language.
+    </p>
+    <p>
+      The second half is the one to insist on. An agent reporting "all 12 rows
+      updated" is telling you about the part it was thinking about, and the
+      failure you care about is the row it was not thinking about. "Nothing else
+      in the file moved" can be a good or bad thing depending on dependencies.
+    </p>
+    <p>
+      An IDE will show you every changed line, which is worth having when you
+      want to spot something missing. It will not tell you which of those changes
+      were meant, so the highlights still need a sentence next to them.
+    </p>
+
+    <div class="trap">
+      <span class="label">Trap: stale build lies</span>
+      When verifying through a browser or any cached surface, clear the cache and
+      service worker first then confirm the running page contains the new code
+      before testing behaviour. A stale bundle will happily reproduce the old bug
+      and send you chasing a fix that already landed.
+    </div>
+
+    <div class="trap">
+      <span class="label">Trap: it worked in the scaffold</span>
+      A scaffold will not always survive the port on the first pass. Test the UI
+      on a refreshed page or a clean emulator before reporting it broken.
+    </div>
+
+    <h2>8. Vague is fine, unchecked is not</h2>
+    <p>
+      You will describe what you want in loose terms, and that is fine. The
+      lead's job is turning it into something checkable before it goes out.
+    </p>
+    <p>
+      <strong>Batch size is the one number worth holding.</strong> Twelve items
+      has been a safe number in testing. A long-horizon model can take the whole
+      backlog, so the real question is not what it can hold but how much output
+      you are willing to read at once at that model's price.
+    </p>
+
+    <h2>9. Standing rules live where agents read them</h2>
+    <p>
+      A rule stated once in chat is gone by the next session. A rule written in
+      the wrong file is worse, because it looks enforced and is not. If a
+      convention keeps getting violated, check whether it was ever written where
+      the agents actually load it and whether it was scoped too narrowly. A
+      style rule filed under "commit messages" will be applied only to commit
+      messages, no matter how many times you restate it.
+    </p>
+    <p>
+      Fix it at the source: put it in the always-loaded rules file, state the
+      scope explicitly, then broadcast it once to every live agent. Also make
+      sure the rules file itself obeys the rule or it teaches the opposite.
+    </p>
+
+    <h2>10. Check before you edit</h2>
+    <p>
+      A lead flags a number for looking wrong next to its neighbours, calls it a
+      typo and moves to fix it. The number turns out to be real, taken from a
+      published source. The neighbours it was compared against were the only
+      ones in the file that happened to look that way. The sample was three rows
+      out of a hundred.
+    </p>
+    <p>
+      Before changing anything on the strength of a conclusion, check the whole
+      set rather than the part that got noticed. Ask where the value came from.
+      If it turns out to be real, say so and stop. That is finished work, not a
+      dead end.
+    </p>
+    <p class="note">
+      Outside advice gets scepticism by default. A conclusion you reached
+      yourself often feels already true, so it needs a harder check, not a
+      softer one.
+    </p>
+
+    <h2>11. Judgment stays human</h2>
+    <p>
+      Agents are good at finding and typing. They are not the ones to decide
+      whether a change is worth making. In practice the line sits here:
+    </p>
+    <ul>
+      <li><strong>Agents may:</strong> add new content, fill gaps, write research,
+      make changes that are additive and reversible.</li>
+      <li><strong>Agents may not:</strong> change live values that other things
+      depend on, commit, push, bump versions or delete.</li>
+    </ul>
+    <p>
+      When an agent finds a real defect in live data, the correct output is a
+      written case with evidence and a recommendation, not an edit. The human
+      decides. This is also what keeps an unattended loop safe: it can work all
+      night and still touch nothing irreversible.
+    </p>
+
+    <h2>12. What comes back that you did not ask for</h2>
+    <p>
+      A seat working through a brief sees things the lead did not anticipate. It
+      finds a gap the brief missed, spots that the premise is wrong or reports
+      that the thing it was sent to confirm cannot be confirmed. All three are
+      good results even though none of them are what was asked for.
+    </p>
+
+    <h2>13. Unattended runs</h2>
+    <p>
+      This is generic advice, but worth a reminder: a schedule you asked for gets
+      skipped while you are still yapping. Ask for clock times rather than
+      intervals, since "every five hours" cannot be expressed and gets quietly
+      reshaped into something with a hole in it. Name the times. This assumes the
+      lead is also keeping track of what work is done versus undone.
+    </p>
+
+    <h2>14. Playbook</h2>
+    <p>What to insist on, and what to check before you accept work as done.</p>
+    <ul>
+      <li><strong>Nothing new goes straight into the product.</strong> Scaffold
+      or worktree first, then port. Branches are for shipping, not for isolating
+      parallel agents.</li>
+      <li><strong>Make the lead write the brief on disk</strong> with exact
+      paths, exact strings, the verify command and forbidden actions. A brief
+      you cannot read is a brief you cannot hold anyone to.</li>
+      <li><strong>One specialist per file.</strong> Parallel across territories
+      is fine. Two agents in one file is not.</li>
+      <li><strong>Ask for the diff, not the summary.</strong></li>
+      <li><strong>Expect the run log to separate verified from not verified,</strong>
+      and to name the platform or path nobody could test. A log that reports only
+      success is not telling you what it cost.</li>
+      <li><strong>Treat "verified" as a claim until you see the check output.</strong>
+      Reading a file is not running the check.</li>
+    </ul>
+
+    <h2>15. Swap rules</h2>
+    <p>Seats are roles. Swap models when someone else wins the strength test:</p>
+    <ul>
+      <li>Better patch reliability in a fragile file, promote to Precision.</li>
+      <li>Better spec'd batch work, promote to Second builder.</li>
+      <li>Better sourcing and willingness to say "unknown," promote to Research.</li>
+      <li>Better judgment and honest self-correction, promote to Lead.</li>
+    </ul>
+    <p class="note">
+      Test a new seat on one small, well-specified job with a clear checker
+      before trusting it with anything larger. A clean first pass on a bounded
+      task is the signal; a summary claiming success is not.
+    </p>
+
+    <footer>
+      Model IDs are August 2026 snapshots
+    </footer>
+  </div>
+</body>
+</html>
